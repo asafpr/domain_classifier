@@ -11,7 +11,7 @@ If diamond is not installed or you wish not to use diamond for domain prediction
 
 Now take a fasta file and run the classifier, you'll have to define two files for intermediate steps: one for the translated protein sequences and one for the hmmsearch results. Output will be written to STDOUT:
 ```
-# You'll need
+# You'll need hmmer and EMBOSS loaded
 module load hmmer emboss
 predict_domain.py -d <database_dir> -i input.fna -t input.faa -b input.hmm > output_table.txt
 ```
@@ -31,5 +31,6 @@ The script will generate an sqlite3 database in the file given by `--dbfile` if 
  - At least `--mindomains` are found for the record (default 5)
  - The record's taxid doesn't match the predicted domain
  - The difference between the MAP domain and the second best is > `--midiff` (1 by default)
+
 If there is no prediction or the prediction didn't meet the criteria the record will be written to the output (which goes to STDOUT)
 
