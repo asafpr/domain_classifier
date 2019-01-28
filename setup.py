@@ -13,6 +13,5 @@ setup(name='domain_classifier',
         'bin/filter_kraken_db.py'], 
       install_requires=[
         'biopython',
-        'sqlite3',
         ],
       zip_safe=False)

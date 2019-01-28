@@ -24,6 +24,9 @@ def process_command_line(argv):
     parser.add_argument(
         '-d', '--dir', default='.', 
         help="database directory")
+    parser.add_argument(
+        '--nodiamond', default=False, action='store_true',
+        help="Don't build diamond DB, predict_domain.py with --diamond will fail")
     settings = parser.parse_args(argv)
     return settings
 
@@ -36,9 +39,10 @@ def main(argv=None):
     tax_base = "ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/database_files/pfamA_tax_depth.txt.gz"
     subprocess.check_call("wget -q -P {} {} {} {}".format(outdir, fasta_in, tax_base, hmm_in), shell=True)
     # Run diamond build db
-    subprocess.check_call("diamond makedb --in {}/Pfam-A.fasta.gz -d {}/Pfam-A".format(outdir, outdir), shell=True)
+    if (not settings.nodiamond):
+        subprocess.check_call("diamond makedb --in {}/Pfam-A.fasta.gz -d {}/Pfam-A".format(outdir, outdir), shell=True)
     subprocess.check_call("gunzip {}/Pfam-A.hmm.gz".format(outdir), shell=True)
-    subprocess.check_call("hmmpress -f {}/Pfam-A.hmm".format(outdir), shell=True)
+#    subprocess.check_call("hmmpress -f {}/Pfam-A.hmm".format(outdir), shell=True)
     
     return 0
 
