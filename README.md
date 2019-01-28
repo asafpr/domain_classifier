@@ -1,4 +1,4 @@
-# domain classifier - Classify a sequence to taxonomic domain using PFAM domains
+# domain classifier - Classify a sequence to its taxonomic domain using PFAM domains
 ## How to use
 The input is usually a DNA fasta sequence which will be translated to proteins and will be searched for PFAM domains. These domains will be used to classify each sequence to one of four domains: Bacteria, Eukaryota, Archaea and Viruses. The main idea is for the user to be easily spot contaminations where the reference genomes are not known. Since protein domains are highly distinctive between the above taxonomic domain (with the exception of Viruses which kidnap their hosts' genes), the distinction is quite easy. 
 
