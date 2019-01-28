@@ -37,8 +37,11 @@ def process_command_line(argv):
                         help="diamond output file")
     parser.add_argument("-t", "--translate", default=None,
                         help="Write ORFs to this file")
+    parser.add_argument("--limit", type=int, default=100,
+                        help="Limit the number of proteins from each sequence to this number. Default is 100, will only apply to hmmsearch, not diamond")
     parser.add_argument("--diamond", default=False, action='store_true',
                         help='Use diamond to find domains, default is hmmsearch')
+    parser.add_argument("--threads", type=int, default=20, help="Number of threads to use with hmmsearch")
     parser.add_argument("--pseudocounts", type=int, default=1,
                         help='Add pseudocounts to the number of domains to implement Laplace smoothing. One by default (i.e. Lidstone Smoothing)') 
     parser.add_argument(
@@ -55,9 +58,11 @@ def main(argv=None):
     settings = process_command_line(argv)
     # dictionary: sequence -> list(domains)
     if settings.diamond:
-        domains = domain_classifier.find_domains(settings.input, settings.dir, settings.blout, settings.all, settings.protein)
+        domains = domain_classifier.find_domains(settings.input, settings.dir, settings.blout, settings.all, settings.protein, threads=settings.threads)
     else:
-        domains = domain_classifier.find_domains_hmm(settings.input, settings.dir, settings.translate, settings.blout, settings.all, settings.protein, hmmsearch=settings.hmmsearch, getorf=settings.getorf)
+        domains = domain_classifier.find_domains_hmm(
+            settings.input, settings.dir, settings.translate, settings.blout, settings.all, settings.protein, 
+            hmmsearch=settings.hmmsearch, getorf=settings.getorf, threads=settings.threads, shuffle=settings.limit)
     # likels: dictionary domain -> taxdomain -> likelihood lorder: list(taxdomain)
     (likels, lorder) = domain_classifier.read_likelihoods(settings.dir, settings.pseudocounts)
     # dictionary sequence -> taxdomain -> posterior prob

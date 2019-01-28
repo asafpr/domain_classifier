@@ -9,8 +9,10 @@ setup(name='domain_classifier',
       packages=['domain_classifier'],
       scripts=[
         'bin/build_database.py',
-        'bin/predict_domain.py'], 
+        'bin/predict_domain.py',
+        'bin/filter_kraken_db.py'], 
       install_requires=[
         'biopython',
-        'ascii_graph'],
+        'sqlite3',
+        ],
       zip_safe=False)

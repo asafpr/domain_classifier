@@ -3,6 +3,8 @@ from collections import defaultdict
 import gzip
 import tempfile
 import sys
+import math
+import random
 
 def find_domains(infile, dbdir, blout, all=False, protein=False, scov=50, minsim=20, threads=20):
     """
@@ -50,7 +52,7 @@ def find_domains(infile, dbdir, blout, all=False, protein=False, scov=50, minsim
                     covered_pos[spl[0]].add(pos)
     return alldomains
 
-def find_domains_hmm(infile, dbdir, faafile, hmmout, all=False, protein=False, incscore=20, threads=20, hmmsearch='hmmsearch', getorf='getorf'):
+def find_domains_hmm(infile, dbdir, faafile, hmmout, all=False, protein=False, incscore=20, threads=20, shuffle=100, hmmsearch='hmmsearch', getorf='getorf'):
     """
     Use hmmsearch to look for PFAM domains. Accuarte but longer runtime
     Arguments:
@@ -61,6 +63,7 @@ def find_domains_hmm(infile, dbdir, faafile, hmmout, all=False, protein=False, i
     - `all`: Return one list for the entire file
     - `protein`: The input file is protein, use blastp instead of blastx
     - `incscore`: pass to --incdomT parameter
+    - `shuffle`: Select random 1000 (or as defined) proteins for each DNA sequence
     - `hmmsearch`: hmmsearch executable
     - `getorf`: getorf executable
     """
@@ -73,29 +76,31 @@ def find_domains_hmm(infile, dbdir, faafile, hmmout, all=False, protein=False, i
             nfn = nffile.name
         # Print the proteins into this file, then concatenate them
         tmppt = tempfile.NamedTemporaryFile()
-        orfcmd = "{} -table 1 -find 1 -sequence {} -outseq {}".format(getorf, nfn, tmppt.name)
+        orfcmd = "{} -table 1 -find 1 -minsize 300 -sequence {} -outseq {}".format(getorf, nfn, tmppt.name)
         sys.stderr.write("Running: {}\n".format(orfcmd))
         subprocess.check_call(orfcmd, shell=True)
         if infile.endswith(".gz"):
             nffile.close()
         # Concat the proteins
         with open(faafile, 'wb') as ptout:
-            buffer = ''
             sname = None
             sdesc = ''
+            seqbuff = []
             for line in tmppt:
                 if line.startswith(">"):
                     s = line.split()[0].rsplit("_",1)[0][1:]
                     if s != sname:
                         if sname:
                             # Write the previous proteins
-                            ptout.write(">{} {}{}\n".format(sname, sdesc, buffer))
+                            buffer = "XXX".join(random.sample(seqbuff, min(len(seqbuff), shuffle)))
+                            ptout.write(">{} {}\n{}\n".format(sname, sdesc, buffer))
                         sname = s
-                        sdesc = line.split(" ",4)[4]
-                        buffer = ''
+                        sdesc = line.strip().split(" ",4)[4]
+                        seqbuff = []
                 else:
-                    buffer += line.strip()
+                    seqbuff.append(line.strip())
             if sname:
+                buffer = "XXX".join(random.sample(seqbuff, min(len(seqbuff), shuffle)))  
                 ptout.write(">{} {}\n{}\n".format(sname, sdesc, buffer))
         tmppt.close()                
     else:
@@ -104,7 +109,7 @@ def find_domains_hmm(infile, dbdir, faafile, hmmout, all=False, protein=False, i
 #    hmmcmd = "hmmscan --cpu {} --domtblout {} -o /dev/null --incT {} -T {} {}/Pfam-A.hmm {}".format(threads, hmmout, incscore, incscore, dbdir,  faafile)
     hmmcmd = "{} --cpu {} --domtblout {} -o /dev/null --incT {} -T {} {}/Pfam-A.hmm {}".format(hmmsearch, threads, hmmout, incscore, incscore, dbdir,  faafile)
     sys.stderr.write("Running: {}\n".format(hmmcmd))
-    subprocess.check_call(hmmcmd, shell=True, stderr=subprocess.PIPE)
+    subprocess.check_call(hmmcmd, shell=True, stderr=subprocess.STDOUT)
     # Parse the output same way as with diamond
     alldomains = defaultdict(list)
     covered_pos = defaultdict(set)
@@ -167,7 +172,7 @@ def compute_post(domains, likel):
         mult = defaultdict(lambda: 0)
         for domain in domains[sname]:
             for tx in likel[domain].keys():
-                mult[tx] += log(likel[domain][tx])
+                mult[tx] += math.log(likel[domain][tx])
         post[sname] = mult
     return post
 
