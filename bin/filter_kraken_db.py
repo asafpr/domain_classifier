@@ -44,7 +44,7 @@ def process_command_line(argv):
         help="path taxonomy directory of kraken2 DB, should contain names.dmp, nodes.dmp and *accession2taxid files")
     parser.add_argument(
         'fasta',
-        help='Input fasta file. Headers must be in the format: >kraken:taxid|214684|NC_006670.1')
+        help='Input fasta file. Headers must be accession numbers or in the format: >kraken:taxid|214684|NC_006670.1')
     parser.add_argument(
         'table',
         help='The predicted domains table, output of predict_domain.py')
