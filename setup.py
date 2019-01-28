@@ -8,7 +8,7 @@ setup(name='domain_classifier',
       license='MIT',
       packages=['domain_classifier'],
       scripts=[
-        'bin/build_database.py',
+        'bin/build_domains_DB.py',
         'bin/predict_domain.py',
         'bin/filter_kraken_db.py'], 
       install_requires=[
