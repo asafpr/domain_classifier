@@ -13,5 +13,6 @@ setup(name='domain_classifier',
         'bin/filter_kraken_db.py'], 
       install_requires=[
         'biopython',
+        'apsw',
         ],
       zip_safe=False)

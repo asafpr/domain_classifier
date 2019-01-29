@@ -4,7 +4,7 @@ Given an output file of predict_domain.py and an input kraken2 database fasta fi
 to include entries that match their classification 
 """
 
-from __future__ import division
+from __future__ import division, print_function
 import sys
 import os
 import os.path
@@ -19,6 +19,11 @@ import urllib
 import subprocess
 import shutil
 import glob
+import apsw
+
+py3=sys.version_info >= (3, 0)
+def inext(v):  # next value from iterator
+    return next(v) if py3 else v.next()
 
 def process_command_line(argv):
     """
@@ -112,8 +117,8 @@ def match_txid(domain, taxid, curr):
     Return True if the txid is under the domain
     """
     while (taxid != domain):
-        curr.execute("select parent from nodes where taxid=?", (taxid, ))
-        p = curr.fetchone()[0]
+        (p,) = inext(curr.execute("select parent from nodes where taxid=?", (taxid, )))
+#        p = curr.fetchone()[0]
         if p == taxid:
             break
         taxid = p
@@ -125,7 +130,12 @@ def main(argv=None):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     if (settings.dbfile == ':memory:' or not os.path.exists(settings.dbfile)):
         build_db(settings.dbfile, settings.taxonomy)
-    dbconn = sqlite3.connect(settings.dbfile)
+    #dbconn = sqlite3.connect(settings.dbfile)
+    diskconn = apsw.Connection(settings.dbfile)
+    dbconn = apsw.Connection(":memory:")
+    with dbconn.backup("main", diskconn, "main") as backup:
+        backup.step()
+
     curr = dbconn.cursor()
     # Read the results file
     accdom = {}
@@ -143,9 +153,9 @@ def main(argv=None):
         else:
             acc = record.id
             nover = acc.split(".")[0]
-            curr.execute("select taxid from acc2taxid where acc=?", (nover,))
-            txid = curr.fetchone()
-            if txid: txid = txid[0]
+            (txid,) = inext(curr.execute("select taxid from acc2taxid where acc=?", (nover,)))
+#            txid = curr.fetchone()
+#            if txid: txid = txid[0]
         if txid and acc in accdom:
             if not match_txid(accdom[acc], txid, curr): continue
         if not txid:
