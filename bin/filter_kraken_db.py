@@ -149,7 +149,7 @@ def main(argv=None):
     # Read the fasta and print the records passed filter to STDOUT
     for record in SeqIO.parse(settings.fasta, 'fasta'):
         if record.id.startswith("kraken"):
-            (_, txid, acc) = record.id.split("|")
+            (_, txid, acc) = record.id.split("|",2)
         else:
             acc = record.id
             nover = acc.split(".")[0]
