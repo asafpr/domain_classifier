@@ -75,7 +75,7 @@ def build_db(dbfile, taxdir):
                  acc text NOT NULL,
                  taxid INTEGER NOT NULL,
                      FOREIGN KEY (taxid) REFERENCES nodes(taxid))''')
-
+    c.execute('''CREATE INDEX acc_index ON acc2taxid(acc ASC)''')
     names = "{}/names.dmp".format(taxdir)
     nodes = "{}/nodes.dmp".format(taxdir)
     logging.info("Inserting values to taxonomy tables")
