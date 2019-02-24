@@ -173,6 +173,7 @@ def compute_post(domains, likel):
         for domain in domains[sname]:
             for tx in likel[domain].keys():
                 mult[tx] += math.log(likel[domain][tx])
-        post[sname] = mult
+        if (mult):
+            post[sname] = mult
     return post
 

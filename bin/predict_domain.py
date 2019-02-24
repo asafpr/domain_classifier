@@ -79,7 +79,7 @@ def main(argv=None):
         slens[sr.id] = len(sr.seq)
         desc[sr.id] = sr.description
     fain.close()
-    for k in domains.keys():
+    for k in posteriors.keys():
         maxp = max(posteriors[k], key=posteriors[k].get)
         print "\t".join([str(y) for y in [k, desc[k], slens[k], len(domains[k]), maxp] + [posteriors[k][x] for x in lorder]])
     return 0
