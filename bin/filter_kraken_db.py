@@ -51,6 +51,9 @@ def process_command_line(argv):
         '--filter_virus', default=False, action='store_true',
         help='By default keep all sequences from viral genomes, use this to filter them out')
     parser.add_argument(
+        '--keep_enviro', default=False, action='store_true',
+        help='By default remove uncultured bacteria, use this to keep them')
+    parser.add_argument(
         'fasta',
         help='Input fasta file. Headers must be accession numbers or in the format: >kraken:taxid|214684|NC_006670.1')
     parser.add_argument(
@@ -115,7 +118,7 @@ def build_db(dbfile, taxdir):
     conn.close()
 
 
-def match_txid(domain, taxid, curr, keepvir=False):
+def match_txid(domain, taxid, curr, keepvir=False, keepenv=False):
     """
     Return True if the txid is under the domain
     """
@@ -129,6 +132,8 @@ def match_txid(domain, taxid, curr, keepvir=False):
             break
         if (taxid == 10239 and not keepvir):
             return True
+        if (taxid == 48479 and not keepenv):
+            return False
         taxid = p
 
     return taxid == domain 
@@ -169,7 +174,7 @@ def main(argv=None):
 #            txid = curr.fetchone()
 #            if txid: txid = txid[0]
         if txid and acc in accdom:
-            if not match_txid(accdom[acc], txid, curr, settings.filter_virus): continue
+            if not match_txid(accdom[acc], txid, curr, settings.filter_virus, settings.keep_enviro): continue
         if not txid:
             logging.warn("Can't find taxonomy ID for sequence: {}".format(record.id))
         sys.stdout.write(record.format('fasta'))
