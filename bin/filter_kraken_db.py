@@ -51,8 +51,8 @@ def process_command_line(argv):
         '--filter_virus', default=False, action='store_true',
         help='By default keep all sequences from viral genomes, use this to filter them out')
     parser.add_argument(
-        '--keep_enviro', default=False, action='store_true',
-        help='By default remove uncultured bacteria, use this to keep them')
+        '--filter_enviro', default=False, action='store_true',
+        help='Set to remove environmental samples')
     parser.add_argument(
         'fasta',
         help='Input fasta file. Headers must be accession numbers or in the format: >kraken:taxid|214684|NC_006670.1')
@@ -174,7 +174,7 @@ def main(argv=None):
 #            txid = curr.fetchone()
 #            if txid: txid = txid[0]
         if txid and acc in accdom:
-            if not match_txid(accdom[acc], txid, curr, settings.filter_virus, settings.keep_enviro): continue
+            if not match_txid(accdom[acc], txid, curr, settings.filter_virus, not settings.filter_enviro): continue
         if not txid:
             logging.warn("Can't find taxonomy ID for sequence: {}".format(record.id))
         sys.stdout.write(record.format('fasta'))
