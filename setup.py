@@ -5,7 +5,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name='domain_classifier',
-      version='0.0.1',
+      version='0.0.3',
       description='Use PFAM domains to classify DNA or proteins to taxonomic domain',
       author='Asaf Peer',
       author_email='asaf.peer@jax.org',
