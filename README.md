@@ -34,3 +34,4 @@ The script will generate an sqlite3 database in the file given by `--dbfile` if 
 
 If there is no prediction or the prediction didn't meet the criteria the record will be written to the output (which goes to STDOUT)
 
+&copy; 2019 The Jackson Laboratory
