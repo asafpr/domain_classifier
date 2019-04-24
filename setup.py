@@ -1,8 +1,7 @@
 from setuptools import setup
 
-def readme():
-    with open('README.md') as f:
-        return f.read()
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name='domain_classifier',
       version='0.0.1',
@@ -21,5 +20,5 @@ setup(name='domain_classifier',
         ],
       zip_safe=False,
       url='https://github.com/asafpr/domain_classifier',
-      long_description=long_description,
+      long_description=read("README.md"),
       long_description_content_type="text/markdown",)
