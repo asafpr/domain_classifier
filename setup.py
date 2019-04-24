@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='domain_classifier',
-      version='0.0.2',
+      version='0.0.1',
       description='Use PFAM domains to classify DNA or proteins to taxonomic domain',
       author='Asaf Peer',
       author_email='asaf.peer@jax.org',
@@ -20,4 +20,6 @@ setup(name='domain_classifier',
         'apsw',
         ],
       zip_safe=False,
-      url='https://github.com/asafpr/domain_classifier')
+      url='https://github.com/asafpr/domain_classifier',
+      long_description=long_description,
+      long_description_content_type="text/markdown",)
