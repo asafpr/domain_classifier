@@ -1,7 +1,11 @@
 from setuptools import setup
 
+def readme():
+    with open('README.md') as f:
+        return f.read()
+
 setup(name='domain_classifier',
-      version='0.0.1',
+      version='0.0.2',
       description='Use PFAM domains to classify DNA or proteins to taxonomic domain',
       author='Asaf Peer',
       author_email='asaf.peer@jax.org',
@@ -15,4 +19,5 @@ setup(name='domain_classifier',
         'biopython',
         'apsw',
         ],
-      zip_safe=False)
+      zip_safe=False,
+      url='https://github.com/asafpr/domain_classifier')
