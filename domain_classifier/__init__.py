@@ -147,17 +147,22 @@ def read_likelihoods(dbdir, pseudocounts=1):
     rawc = defaultdict(lambda: defaultdict(int))
     taxin = gzip.open("{}/pfamA_tax_depth.txt.gz".format(dbdir))
     lorder = []
+    taxsum = defaultdict(int)
     for line in taxin:
         spl = line.strip().split("\t")
         rawc[spl[0]][spl[1]] = int(spl[2])
+        taxsum[spl[1]] += int(spl[2])
         if spl[1] not in lorder:
             lorder.append(spl[1])
     # Compute likelihood
     likel = defaultdict(lambda: defaultdict(float))
     for dom in rawc.keys():
-        domsum = sum(rawc[dom].values()) + pseudocounts*len(lorder)
+#        domsum = 0 #sum(rawc[dom].values()) + pseudocounts*len(lorder)
         for tx in lorder:
-            likel[dom][tx] = float(rawc[dom][tx] + pseudocounts)/domsum
+            likel[dom][tx] = float(rawc[dom][tx] + pseudocounts)/taxsum[tx]
+        domsum = sum(likel[dom].values())
+        for tx in lorder:
+            likel[dom][tx] = likel[dom][tx]/domsum
     return (likel, lorder)
 
 def compute_post(domains, likel):
