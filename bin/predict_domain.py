@@ -67,7 +67,7 @@ def main(argv=None):
     (likels, lorder) = domain_classifier.read_likelihoods(settings.dir, settings.pseudocounts)
     # dictionary sequence -> taxdomain -> posterior prob
     posteriors = domain_classifier.compute_post(domains, likels)
-    print "\t".join(["Record", "Description", "Length", "Number of Domains", "MAP"] + lorder)
+    print ("\t".join(["Record", "Description", "Length", "Number of Domains", "MAP"] + lorder))
     # Get the sequences lengths
     slens = defaultdict(str)
     desc = defaultdict(str)
@@ -81,7 +81,7 @@ def main(argv=None):
     fain.close()
     for k in posteriors.keys():
         maxp = max(posteriors[k], key=posteriors[k].get)
-        print "\t".join([str(y) for y in [k, desc[k], slens[k], len(domains[k]), maxp] + [posteriors[k][x] for x in lorder]])
+        print ("\t".join([str(y) for y in [k, desc[k], slens[k], len(domains[k]), maxp] + [posteriors[k][x] for x in lorder]]))
     return 0
 
 if __name__ == '__main__':

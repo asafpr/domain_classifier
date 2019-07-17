@@ -126,8 +126,8 @@ def match_txid(domain, taxid, curr, kingdoms):
             break
         taxid = p
         if (taxid in kingdoms) and (taxid!=domain):
-            return False 
-    return taxid == domain 
+            return False
+    return True 
 
 
 def main(argv=None):

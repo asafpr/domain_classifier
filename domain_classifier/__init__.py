@@ -1,3 +1,4 @@
+from __future__ import division
 import subprocess
 from collections import defaultdict
 import gzip
@@ -5,7 +6,13 @@ import tempfile
 import sys
 import math
 import random
+import os
+import concurrent.futures as cf
 
+def worker(hmmcmd, hmmout, faafile, dbdir, fnum):
+#    sys.stderr.write(hmmcmd + " --domtblout {}/hmmout_{}.out {}/Pfam-A.hmm {}/prot_{}.faa\n".format(hmmout, fnum, dbdir, faaout, fnum))
+    os.system(hmmcmd + " --domtblout {}/hmmout_{}.out {}/Pfam-A.hmm {}/prot_{}.faa".format(hmmout, fnum, dbdir, faafile, fnum))
+#    os.system(r'echo -e "' + fasta + r'" > ' +  "{}/test_{}.txt".format( hmmout, fnum))
 def find_domains(infile, dbdir, blout, all=False, protein=False, scov=50, minsim=20, threads=20):
     """
     Find the domains on the input file. For each sequence (or all if all==True) return a list of domains present on it
@@ -35,7 +42,7 @@ def find_domains(infile, dbdir, blout, all=False, protein=False, scov=50, minsim
     # for each sequence keep the positions divided by 10 that are covered by a previous domain
     # Since results are sorted, the better matches will be selected
     covered_pos = defaultdict(set)
-    with open(blout, 'rb') as rb:
+    with open(blout, 'r') as rb:
         for line in rb:
             spl  = line.strip().split("\t")
             # Test if region is already covered
@@ -75,17 +82,21 @@ def find_domains_hmm(infile, dbdir, faafile, hmmout, all=False, protein=False, i
             subprocess.call("zcat {} > {}".format(infile, nffile.name), shell=True)
             nfn = nffile.name
         # Print the proteins into this file, then concatenate them
-        tmppt = tempfile.NamedTemporaryFile()
+        tmppt = tempfile.NamedTemporaryFile(mode='w+')
         orfcmd = "{} -table 1 -find 1 -minsize 300 -sequence {} -outseq {}".format(getorf, nfn, tmppt.name)
         sys.stderr.write("Running: {}\n".format(orfcmd))
         subprocess.check_call(orfcmd, shell=True)
         if infile.endswith(".gz"):
             nffile.close()
         # Concat the proteins
-        with open(faafile, 'wb') as ptout:
+#        os.makedirs(faafile, exist_ok=True)
+#        os.makedirs(hmmout, exist_ok=True)
+        fnum = 0
+        with open(faafile, 'w') as ptout:
             sname = None
             sdesc = ''
             seqbuff = []
+            allseqs = []
             for line in tmppt:
                 if line.startswith(">"):
                     s = line.split()[0].rsplit("_",1)[0][1:]
@@ -93,44 +104,57 @@ def find_domains_hmm(infile, dbdir, faafile, hmmout, all=False, protein=False, i
                         if sname:
                             # Write the previous proteins
                             buffer = "XXX".join(random.sample(seqbuff, min(len(seqbuff), shuffle)))
+#                            with open("{}/prot_{}.faa".format(faafile, str(fnum)), 'w') as ptout:
                             ptout.write(">{} {}\n{}\n".format(sname, sdesc, buffer))
+#                            allseqs.append(r">{} {}\n{}\n".format(sname, sdesc, buffer))
+                            fnum += 1
                         sname = s
-                        sdesc = line.strip().split(" ",4)[4]
+                        sdesc = ''
+                        try:
+                            sdesc = line.strip().split(" ",4)[4]
+                        except IndexError:
+                            pass
                         seqbuff = []
                 else:
                     seqbuff.append(line.strip())
             if sname:
                 buffer = "XXX".join(random.sample(seqbuff, min(len(seqbuff), shuffle)))  
+ #               with open("{}/prot_{}.faa".format(faafile, str(fnum)), 'w') as ptout:            
                 ptout.write(">{} {}\n{}\n".format(sname, sdesc, buffer))
+      #      allseqs.append(r">{} {}\n{}\n".format(sname, sdesc, buffer))
+
         tmppt.close()                
     else:
         faafile = infile
     # Run hmmsearch
-#    hmmcmd = "hmmscan --cpu {} --domtblout {} -o /dev/null --incT {} -T {} {}/Pfam-A.hmm {}".format(threads, hmmout, incscore, incscore, dbdir,  faafile)
-    hmmcmd = "{} --cpu {} --domtblout {} -o /dev/null --incT {} -T {} {}/Pfam-A.hmm {}".format(hmmsearch, threads, hmmout, incscore, incscore, dbdir,  faafile)
-    sys.stderr.write("Running: {}\n".format(hmmcmd))
-    subprocess.check_call(hmmcmd, shell=True, stderr=subprocess.STDOUT)
+    hmmcmd = "{} --cpu {}  -o /dev/null --incT {} -T {} --domtblout {} {}/Pfam-A.hmm {}".format(hmmsearch, threads, incscore, incscore, hmmout, dbdir, faafile)
+    sys.stderr.write("Running:{} {}\n".format(fnum, hmmcmd))
+    subprocess.run(hmmcmd, shell=True)
+# Ruuning the faa files with a pool of threads
+#    with cf.ProcessPoolExecutor(threads) as pp:
+#        for f in range(fnum+1):
+#            sys.stderr.write("{} {} {} {}\n".format(hmmcmd, hmmout, dbdir, f))
+#            pp.submit(worker, hmmcmd, hmmout, faafile, dbdir, f)
+   
+#    subprocess.check_call(hmmcmd, shell=True, stderr=subprocess.STDOUT)
     # Parse the output same way as with diamond
     alldomains = defaultdict(list)
     covered_pos = defaultdict(set)
-    
+ 
+ #   for f in range(fnum+1):   
     with open(hmmout, 'r') as hin:
         for line in hin:
             if line.startswith("#"):
                 continue
             spl = line.strip().split()
             mrange = set(range(int(int(spl[19])/10), int(int(spl[20])/10)+1))
-#            ncov = len(mrange & covered_pos[spl[3]])
             ncov = len(mrange & covered_pos[spl[0]])
             if ncov < len(mrange) / 2:
-#                sname = spl[3]
                 sname = spl[0]
                 if all:
                     sname = 'all'
-#                alldomains[sname].append(spl[1].split(".")[0])
                 alldomains[sname].append(spl[4].split(".")[0])
                 for pos in mrange:
-#                    covered_pos[spl[3]].add(pos)
                     covered_pos[spl[0]].add(pos)
     return alldomains
             
@@ -148,10 +172,18 @@ def read_likelihoods(dbdir, pseudocounts=1):
     taxin = gzip.open("{}/pfamA_tax_depth.txt.gz".format(dbdir))
     lorder = []
     taxsum = defaultdict(int)
+    tain = gzip.open("{}/ncbi_taxonomy.txt.gz".format(dbdir))
+    for l in tain:
+        spl = l.decode().strip().split("\t")
+        try:
+            king = spl[2].split(';')[0]
+            taxsum[king] += 1
+        except IndexError:
+            pass
     for line in taxin:
-        spl = line.strip().split("\t")
+        spl = line.decode().strip().split("\t")
         rawc[spl[0]][spl[1]] = int(spl[2])
-        taxsum[spl[1]] += int(spl[2])
+   #     taxsum[spl[1]] += int(spl[2])
         if spl[1] not in lorder:
             lorder.append(spl[1])
     # Compute likelihood
@@ -160,9 +192,9 @@ def read_likelihoods(dbdir, pseudocounts=1):
 #        domsum = 0 #sum(rawc[dom].values()) + pseudocounts*len(lorder)
         for tx in lorder:
             likel[dom][tx] = float(rawc[dom][tx] + pseudocounts)/taxsum[tx]
-        domsum = sum(likel[dom].values())
-        for tx in lorder:
-            likel[dom][tx] = likel[dom][tx]/domsum
+#        domsum = sum(likel[dom].values())
+#        for tx in lorder:
+#            likel[dom][tx] = likel[dom][tx]/domsum
     return (likel, lorder)
 
 def compute_post(domains, likel):
@@ -181,4 +213,66 @@ def compute_post(domains, likel):
         if (mult):
             post[sname] = mult
     return post
+
+
+def select_domains(infile, statthr=6.25, writef=None):
+    """
+    Given a distribution file of domains select the domains that distinguish between the four tax domains
+    Using chi-square test between the number of domains observed and the expected using all the domains in the
+    database.
+    Return a list of domains that passed the test.
+    Arguments:
+    - `infile`: an input file with counts of domains for each taxonomy
+    - `statthr`: The minimal chi-square statist to include
+    """
+    domcount = defaultdict(lambda: defaultdict(int))
+    alldoms = defaultdict(int)
+    fin = gzip.open(infile)
+    for l in fin:
+        (acc, tax, num, d1, d2) = l.strip().split("\t")
+        domcount[acc][tax] = int(num)
+        alldoms[tax] += int(num)
+    
+    # Comput the test for each domain
+    asum = sum(alldoms.values())
+    for k in alldoms:
+        alldoms[k] /= asum
+    ret_domains = []
+    for domain in domcount.keys():
+        csq = 0
+        dsum = sum(domcount[domain].values())
+        for d in alldoms.keys():
+            csq += pow(alldoms[d]*dsum - domcount[domain][d],2)/(alldoms[d]*dsum)
+        if csq >= statthr:
+            ret_domains.append(domain)
+        if writef:
+            writef.write("{}\t{}\n".format(domain, csq))
+    return(ret_domains)
+
+
+def filter_hmm(hmmfile, outfile, acc):
+    """
+    Filter hmm file to contain only the acc in the list
+    Arguments:
+    - `hmmfile`: input hmm file
+    - `outfile`: output hmm file
+    - `acc`: list of accessions to keep
+    """
+    with open(hmmfile, 'r') as inf, open(outfile, 'w') as outf:
+        hmbuf = []
+        keep = False
+        for l in inf:
+            hmbuf.append(l)
+            if (l.startswith('ACC')):
+                # ACC   PF10417.9
+                (lab, pf) = l.strip().split()
+                (a, v) = pf.split(".")
+                if a in acc:
+                    keep = True
+            if (l.strip()=="//"):
+                if keep:
+                    for l2 in hmbuf:
+                        outf.write(l2)
+                keep = False
+                hmbuf = []
 
